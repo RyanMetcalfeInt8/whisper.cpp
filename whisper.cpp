@@ -3164,9 +3164,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
 
 int whisper_ctx_init_openvino_encoder(
         struct whisper_context * ctx,
-                    const char * model_path,
-                    const char * device,
-                    const char * cache_dir) {
+        const char * model_path,
+        const char * device,
+        const char * cache_dir) {
 #ifndef WHISPER_USE_OPENVINO
     (void)(ctx);
     (void)(model_path);
@@ -3175,6 +3175,39 @@ int whisper_ctx_init_openvino_encoder(
 
     return 1;
 #else
+
+    if (ctx->state == nullptr) {
+        WHISPER_LOG_ERROR("%s: ERROR state was not loaded.\n", __func__);
+        return 1;
+    }
+
+    return whisper_state_init_openvino_encoder(ctx, ctx->state, model_path, device, cache_dir);
+#endif
+}
+
+int whisper_state_init_openvino_encoder(
+    struct whisper_context* ctx,
+    struct whisper_state* state,
+    const char* model_path,
+    const char* device,
+    const char* cache_dir)
+{
+#ifndef WHISPER_USE_OPENVINO
+    (void)(ctx);
+    (void)(state);
+    (void)(model_path);
+    (void)(device);
+    (void)(cache_dir);
+
+    return 1;
+#else
+
+    if (!state)
+    {
+        WHISPER_LOG_ERROR("%s: ERROR state was not loaded.\n", __func__);
+        return 1;
+    }
+
     if (!model_path && ctx->path_model.empty()) {
         WHISPER_LOG_ERROR("%s: model_path is nullptr, and ctx has no model_path set.\n", __func__);
         return 1;
@@ -3184,7 +3217,8 @@ int whisper_ctx_init_openvino_encoder(
     if (!model_path) {
         //if model_path is not set, attempt to find it in the same directory as ggml-<model>.bin model
         path_encoder = whisper_openvino_get_path_encoder(ctx->path_model);
-    } else {
+    }
+    else {
         path_encoder = model_path;
     }
 
@@ -3192,18 +3226,20 @@ int whisper_ctx_init_openvino_encoder(
     if (!cache_dir) {
         //if cache_dir is not set, set it as a dir residing next to ggml-<model>.bin
         path_cache = whisper_openvino_get_path_cache(ctx->path_model);
-    } else {
+    }
+    else {
         path_cache = cache_dir;
     }
 
     WHISPER_LOG_INFO("%s: loading OpenVINO model from '%s'\n", __func__, path_encoder.c_str());
     WHISPER_LOG_INFO("%s: first run on a device may take a while ...\n", __func__);
 
-    ctx->state->ctx_openvino = whisper_openvino_init(path_encoder.c_str(), device, path_cache.c_str());
-    if (!ctx->state->ctx_openvino) {
+    state->ctx_openvino = whisper_openvino_init(path_encoder.c_str(), device, path_cache.c_str());
+    if (!state->ctx_openvino) {
         WHISPER_LOG_ERROR("%s: failed to init OpenVINO encoder from '%s'\n", __func__, path_encoder.c_str());
         return 1;
-    } else {
+    }
+    else {
         WHISPER_LOG_INFO("%s: OpenVINO model loaded\n", __func__);
     }
 

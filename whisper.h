@@ -201,6 +201,24 @@ extern "C" {
                     const char * device,
                     const char * cache_dir);
 
+    // Given a context & state, enable use of OpenVINO for encode inference.
+    // model_path: Optional path to OpenVINO encoder IR model. If set to nullptr,
+    //                      the path will be generated from the ggml model path that was passed
+    //                      in to whisper_init_from_file. For example, if 'path_model' was
+    //                      "/path/to/ggml-base.en.bin", then OpenVINO IR model path will be
+    //                      assumed to be "/path/to/ggml-base.en-encoder-openvino.xml".
+    // device: OpenVINO device to run inference on ("CPU", "GPU", etc.)
+    // cache_dir: Optional cache directory that can speed up init time, especially for
+    //                     GPU, by caching compiled 'blobs' there.
+    //                     Set to nullptr if not used.
+    // Returns 0 on success. If OpenVINO is not enabled in build, this simply returns 1.
+    WHISPER_API int whisper_state_init_openvino_encoder(
+        struct whisper_context* ctx,
+        struct whisper_state* state,
+        const char* model_path,
+        const char* device,
+        const char* cache_dir);
+
     // Frees all allocated memory
     WHISPER_API void whisper_free      (struct whisper_context * ctx);
     WHISPER_API void whisper_free_state(struct whisper_state * state);
