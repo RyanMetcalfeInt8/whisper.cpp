@@ -5,6 +5,7 @@
 
 struct whisper_openvino_context {
     ov::InferRequest inferRequest;
+    ov::Core core;
 };
 
 struct whisper_openvino_context * whisper_openvino_init(const char* path_model,
@@ -19,9 +20,12 @@ struct whisper_openvino_context * whisper_openvino_init(const char* path_model,
     fprintf(stderr, "%s: path_model = %s, device = %s, cache_dir = %s\n",
         __func__, path_model, device, cache_dir ? cache_dir : "(not set)");
 
-	whisper_openvino_context *context = new whisper_openvino_context;
+    whisper_openvino_context* context = nullptr;
+
     try {
-        ov::Core core;
+        context = new whisper_openvino_context;
+
+        ov::Core& core = context->core;
 
         if (cache_dir) {
             // enables caching of device-specific 'blobs' during core.compile_model
@@ -29,11 +33,8 @@ struct whisper_openvino_context * whisper_openvino_init(const char* path_model,
             core.set_property(ov::cache_dir(cache_dir));
         }
 
-        //Read the OpenVINO encoder IR (.xml/.bin) from disk, producing an ov::Model object.
-        std::shared_ptr<ov::Model> model = core.read_model(path_model);
-
-        // Produce a compiled-model object, given the device ("CPU", "GPU", etc.)
-        auto compiledModel = core.compile_model(model, device);
+        // Produce a compiled-model object from the IR (.xml/.bin), given the device ("CPU", "GPU", "NPU", etc.)
+        auto compiledModel = core.compile_model(path_model, device);
 
         // From the compiled model object, create an infer request. This is the thing that we
         //  we will use later on to trigger inference execution.
@@ -41,7 +42,8 @@ struct whisper_openvino_context * whisper_openvino_init(const char* path_model,
     }
     catch (const std::exception& error) {
         std::cout << "in openvino encoder compile routine: exception: " << error.what() << std::endl;
-        delete context;
+        if( context )
+           delete context;
         context = nullptr;
     }
 
@@ -50,6 +52,7 @@ struct whisper_openvino_context * whisper_openvino_init(const char* path_model,
 
 void whisper_openvino_free(struct whisper_openvino_context * ctx) {
     if( ctx ) {
+        ctx->inferRequest = {};
         delete ctx;
     }
 }
